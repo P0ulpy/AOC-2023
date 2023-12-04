@@ -1,0 +1,1 @@
+g++ day-4.cpp --std=c++20 -o day4
