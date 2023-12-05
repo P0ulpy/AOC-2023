@@ -15,25 +15,16 @@ struct CardEntry
     std::array<uint32_t, 25> myNumbers;
 };
 
-const char* inputFilePath = "input";
-
 std::vector<CardEntry> ParseInputFile();
 template <size_t SetSize> void PopulateNumberSet(const std::string& numberSetString, std::array<uint32_t, SetSize>& numberSet);
 uint32_t ComputeCardEntry(const CardEntry& cardEntry);
+
+const char* inputFilePath = "input";
 
 int main()
 {
     std::vector<CardEntry> cards = ParseInputFile();
 
-    uint64_t winningNumbers = 0;
-
-    for(const auto& card : cards)
-    {
-        winningNumbers += ComputeCardEntry(card);
-    }
-
-    std::cout << "Winning number: " << winningNumbers << std::endl;
-    
     return EXIT_SUCCESS;
 }
 
@@ -54,9 +45,9 @@ std::vector<CardEntry> ParseInputFile()
 
     std::vector<CardEntry> entries;
 
-    // Sice this is a verry strict format it is ok to do that
     for (std::string line; std::getline(fileContent, line);)
     {
+        // Sice this is a verry strict format it is ok to parse it with static value with no syntax error handling
         // The size for a line is exactly 117
         // winners numbers start at index 9 and end at 39
         // myNumbers start at index 41 and end at 116
@@ -67,8 +58,8 @@ std::vector<CardEntry> ParseInputFile()
         std::string winners = line.substr(9, 30);
         std::string myNumbers = line.substr(41, 75);
         
-        PopulateNumberSet(winners, entry.winning);
-        PopulateNumberSet(myNumbers, entry.myNumbers);
+        PopulateNumberSet(entry.winning, winners);
+        PopulateNumberSet(entry.myNumbers, myNumbers);
 
         entries.push_back(entry);
     }
@@ -77,7 +68,7 @@ std::vector<CardEntry> ParseInputFile()
 }
 
 template <size_t SetSize>
-void PopulateNumberSet(const std::string& numberSetString, std::array<uint32_t, SetSize>& numberSet) 
+void PopulateNumberSet(std::array<uint32_t, SetSize>& numberSet, const std::string& numberSetString) 
 {
     for(size_t cell = 0; cell < SetSize; ++cell)
     {
@@ -87,31 +78,4 @@ void PopulateNumberSet(const std::string& numberSetString, std::array<uint32_t, 
         std::string cellContent = numberSetString.substr(strIndex, cellSize);
         numberSet[cell] = std::stoi(cellContent);
     }
-}
-
-uint32_t ComputeCardEntry(const CardEntry& cardEntry)
-{
-    auto isWinnner = [&](uint32_t number) -> bool 
-    {
-        return std::find(cardEntry.winning.cbegin(), cardEntry.winning.cend(), number) 
-            != cardEntry.winning.cend();
-    };
-
-    uint32_t score = 0;
-
-    for(const auto& myNumbers : cardEntry.myNumbers)
-    {
-        if(isWinnner(myNumbers))
-        {
-            if(score == 0) 
-            {
-                score = 1;
-                continue;
-            }
-
-            score = score << 1;
-        }
-    }
-
-    return score;
 }

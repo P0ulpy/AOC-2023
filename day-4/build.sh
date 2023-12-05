@@ -1,1 +1,1 @@
-g++ day-4.cpp --std=c++20 -o day4
+g++ day-4-part2.cpp --std=c++20 -o day4
