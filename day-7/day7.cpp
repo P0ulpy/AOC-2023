@@ -10,6 +10,15 @@ namespace std {
     using uint128_t = unsigned long long;
 }
 
+template <typename ArrayType>
+struct StdArrayInfo {};
+
+template <typename T, size_t Size>
+struct StdArrayInfo<std::array<T, Size>>
+{ 
+    static constexpr size_t size { Size }; 
+};
+
 using Card = char;
 
 const std::array<Card, 13> Cards = { 
@@ -18,13 +27,20 @@ const std::array<Card, 13> Cards = {
 
 uint16_t GetCardScore(Card card)
 {
-    for(int32_t score = Cards.size(); score > -1 ; --score)
-        if(Cards[score] == card) return score;
+    int32_t score = Cards.size();
+    for(size_t i = 0; i < Cards.size(); ++i)
+    {
+        if(Cards[i] == card) 
+            return score;
+        
+        --score;
+    }
 
     std::__throw_runtime_error((std::string("Can't find card score : Invalid card type ") + card).c_str());
 }
 
 using Hand = std::array<Card, 5>;
+constexpr size_t HandSize = StdArrayInfo<Hand>::size;
 
 std::optional<Card> HasNCardOfSameKind(const Hand& hand, uint8_t n, std::optional<Card> exclude = {})
 {
@@ -78,12 +94,13 @@ bool IsTowPair(const Hand& hand)
     return false;
 }
 
-uint16_t ComputeHandValue(const Hand& hand)
+uint16_t ComputeHandType(const Hand& hand)
 {
-    static std::array<std::function<bool(const Hand& hand)>, 5> Validators {
+    static std::array<std::function<bool(const Hand& hand)>, 6> Validators {
         [](const Hand& h) -> bool { return IsFiveOfAKind(h).has_value(); } ,
         [](const Hand& h) -> bool { return IsFourOfAKind(h).has_value(); },
         [](const Hand& h) -> bool { return IsFullHouse(h); },
+        [](const Hand& h) -> bool { return IsThreeOfAKind(h).has_value(); },
         [](const Hand& h) -> bool { return IsTowPair(h); },
         [](const Hand& h) -> bool { return IsPairOfAKind(h).has_value(); },
     };
@@ -92,14 +109,28 @@ uint16_t ComputeHandValue(const Hand& hand)
     for(auto validator : Validators)
     {
         if(validator(hand)) return score;
-
         --score;
     }
 
     return score;
 }
 
+bool CompareHands(const Hand& hand1, const Hand& hand2)
+{
+    for(size_t cardIndex = 0; cardIndex < HandSize; ++cardIndex)
+    {
+        auto hand1CardScore = GetCardScore(hand1[cardIndex]);
+        auto hand2CardScore = GetCardScore(hand2[cardIndex]);
 
+        
+
+        if(hand1CardScore > hand2CardScore) return true;
+        if(hand1CardScore < hand2CardScore) return false;
+        else continue;
+    }
+
+    std::__throw_runtime_error("No winner found");
+}
 
 std::vector<Hand> hands {
     // { 'K', 'K', 'K', 'K', 'K' },
@@ -123,14 +154,15 @@ int main()
     for(const auto& hand : hands)
     {
         std::cout << "Hand: ";
-        for(const auto& card : hand)
+        for(const auto card : hand)
         {
             std::cout << card << ", ";
         }
-        std::cout << '\n';
 
-        std::cout << "Hand value :" << ComputeHandValue(hand) << std::endl;
+        std::cout << "type: " << ComputeHandType(hand) << std::endl;
     }
+
+    
 
     return 0;
 }
