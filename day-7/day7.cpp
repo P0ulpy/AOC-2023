@@ -1,10 +1,14 @@
+#include <cstdint>
+
 #include <array>
 #include <string>
-#include <cstdint>
-#include <iostream>
 #include <vector>
+
+#include <iostream>
 #include <optional>
 #include <functional>
+
+using namespace std::literals;
 
 namespace std {
     using uint128_t = unsigned long long;
@@ -36,7 +40,7 @@ uint16_t GetCardScore(Card card)
         --score;
     }
 
-    std::__throw_runtime_error((std::string("Can't find card score : Invalid card type ") + card).c_str());
+    std::__throw_runtime_error(("Can't find card score : Invalid card type "s + card).c_str());
 }
 
 using Hand = std::array<Card, 5>;
@@ -96,12 +100,12 @@ bool IsTowPair(const Hand& hand)
 
 uint16_t ComputeHandType(const Hand& hand)
 {
-    static std::array<std::function<bool(const Hand& hand)>, 6> Validators {
+    static std::array<std::function<bool(const Hand& h)>, 6> Validators {
         [](const Hand& h) -> bool { return IsFiveOfAKind(h).has_value(); } ,
         [](const Hand& h) -> bool { return IsFourOfAKind(h).has_value(); },
-        [](const Hand& h) -> bool { return IsFullHouse(h); },
+        IsFullHouse,
         [](const Hand& h) -> bool { return IsThreeOfAKind(h).has_value(); },
-        [](const Hand& h) -> bool { return IsTowPair(h); },
+        IsTowPair,
         [](const Hand& h) -> bool { return IsPairOfAKind(h).has_value(); },
     };
 
@@ -121,8 +125,6 @@ bool CompareHands(const Hand& hand1, const Hand& hand2)
     {
         auto hand1CardScore = GetCardScore(hand1[cardIndex]);
         auto hand2CardScore = GetCardScore(hand2[cardIndex]);
-
-        
 
         if(hand1CardScore > hand2CardScore) return true;
         if(hand1CardScore < hand2CardScore) return false;
@@ -151,18 +153,35 @@ int main()
 {
     std::uint128_t totalScore = 0;
 
-    for(const auto& hand : hands)
     {
-        std::cout << "Hand: ";
-        for(const auto card : hand)
+        struct HandTypePair { uint16_t type = 0; const Hand * hand = nullptr; };
+
+        std::vector<HandTypePair> typedHands;
+        typedHands.reserve(hands.size());
+
+        for(const auto& hand : hands)
         {
-            std::cout << card << ", ";
+            std::cout << "Hand: ";
+            for(const auto card : hand)
+            {
+                std::cout << card << ", ";
+            }
+
+            auto handType = ComputeHandType(hand);
+            std::cout << "type: " << handType << std::endl;
+
+            auto sameTypehand = std::find(typedHands.cbegin(), typedHands.cend(), [&handType](HandTypePair value) {
+                return value.type == handType;
+            });
+
+            if(sameTypehand != typedHands.cend())
+            {
+                CompareHands(hand, *sameTypehand->hand);
+            }
+
+            typedHands.push_back({ handType, &hand });
         }
-
-        std::cout << "type: " << ComputeHandType(hand) << std::endl;
     }
-
-    
 
     return 0;
 }
